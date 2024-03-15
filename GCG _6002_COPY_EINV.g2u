@@ -1,0 +1,229 @@
+Program.Sub.ScreenSU.Start
+Gui.fmMain..Create
+Gui.fmMain..Caption("Copy E-Invoicing Options")
+Gui.fmMain..Size(4665,5760)
+Gui.fmMain..MinX(0)
+Gui.fmMain..MinY(0)
+Gui.fmMain..Position(0,0)
+Gui.fmMain..BackColor(-2147483633)
+Gui.fmMain..MousePointer(0)
+Gui.fmMain..Event(UnLoad,fmMain_UnLoad)
+Gui.fmMain.lblSRC.Create(Label,"Source",True,765,255,0,90,465,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.lblSRC.FontStyle(True,False,False,False,False)
+Gui.fmMain.cboSRC.Create(ComboBox)
+Gui.fmMain.cboSRC.Size(1095,330)
+Gui.fmMain.cboSRC.Position(870,360)
+Gui.fmMain.cboSRC.Event(Change,cboSRC_Change)
+Gui.fmMain.cboSRC.DefaultValue("")
+Gui.fmMain.lblMSG.Create(Label,"Please select the company code to copy FROM:",True,4035,255,0,90,120,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.lblMSG.FontStyle(True,False,False,False,False)
+Gui.fmMain.lblMSG2.Create(Label,"Please select the company code(s) to copy TO:",True,4095,255,0,90,840,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.lblMSG2.FontStyle(True,False,False,False,False)
+Gui.fmMain.lvwDest.Create(ListView)
+Gui.fmMain.lvwDest.Size(4440,3360)
+Gui.fmMain.lvwDest.Position(30,1065)
+Gui.fmMain.lvwDest.View(0)
+Gui.fmMain.lvwDest.CheckBoxes(True)
+Gui.fmMain.cmdSelAll.Create(Button)
+Gui.fmMain.cmdSelAll.Size(1035,585)
+Gui.fmMain.cmdSelAll.Position(2145,4530)
+Gui.fmMain.cmdSelAll.Caption("Select All Codes")
+Gui.fmMain.cmdSelAll.FontStyle(True,False,False,False,False)
+Gui.fmMain.cmdSelAll.Event(Click,cmdSelAll_Click)
+Gui.fmMain.cmdCopy.Create(Button)
+Gui.fmMain.cmdCopy.Size(1035,585)
+Gui.fmMain.cmdCopy.Position(3210,4530)
+Gui.fmMain.cmdCopy.Caption("Copy")
+Gui.fmMain.cmdCopy.FontStyle(True,False,False,False,False)
+Gui.fmMain.cmdCopy.Event(Click,cmdCopy_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+V.Local.sDefault.Declare
+
+F.Intrinsic.Control.CallSub(SetIcon)
+
+F.ODBC.Connection!commts.OpenCommonConnection
+
+F.Data.DataTable.CreateFromSQL("dtCOCODES","commts","Select COCODE,COMPANYNAME from COMPANIES",True)
+
+F.Data.DataTable.Select("dtCOCODES","COCODE = 'COR'",V.Local.sDefault)
+
+Gui.fmMain.cboSRC.AddItems("Datatable","dtCOCODES","COCODE","COCODE")
+
+Gui.fmMain.cboSRC.ListIndex(V.Local.sDefault.Long)
+
+Gui.fmMain..Show
+
+F.ODBC.Connection!commts.Close
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.cboSRC_Change.Start
+F.Intrinsic.Control.Try
+V.Local.sFilter.Declare
+V.Local.iCNT.Declare
+V.Local.sCOCODE.Declare
+V.Local.sCONAME.Declare
+
+V.Local.sFilter.Set(V.Screen.fmMain!cboSRC.Text.Trim)
+
+F.Intrinsic.Control.If(V.DataView.dtCOCODES!dvCOCODES.Exists)
+	F.Data.DataView.Close("dtCOCODES","dvCOCODES")
+	Gui.fmMain.lvwDest.ClearItems
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.Create("dtCOCODES","dvCOCODES",22)
+
+F.Intrinsic.String.Build("COCODE <> '{0}'",V.Local.sFilter,V.Local.sFilter)
+
+F.Data.DataView.SetFilter("dtCOCODES","dvCOCODES",V.Local.sFilter)
+
+F.Intrinsic.Control.For(V.Local.iCNT,0,V.DataView.dtCOCODES!dvCOCODES.RowCount--,1)
+	V.Local.sCOCODE.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COCODE.FieldValTrim)
+	V.Local.sCONAME.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COMPANYNAME.FieldValTrim)
+	Gui.fmMain.lvwDest.AddListItem(V.Local.sCOCODE,V.Local.sCOCODE)
+F.Intrinsic.Control.Next(V.Local.iCNT)
+
+Gui.fmMain.lvwDest.Visible(True)
+Gui.fmMain.cmdSelAll.Visible(True)
+Gui.fmMain.cmdCopy.Visible(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cboSRC_Change.End
+
+Program.Sub.cmdCopy_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sList.Declare
+V.Local.sSrc.Declare
+V.Local.sDest.Declare
+V.Local.iCNT.Declare
+V.Local.sPath.Declare
+V.Local.bSrcLocked.Declare
+V.Local.bDestLocked.Declare
+V.Local.sSuccess.Declare
+V.Local.sFail.Declare
+
+V.Local.sPath.Set(V.Caller.GlobalDir)
+V.Local.sSrc.Set(V.Screen.fmMain!cboSRC.Text.Trim)
+
+F.Intrinsic.String.Build("{0}\DDF\{1}\PPT_EINV_COPT000.MKD",V.Local.sPath,V.Local.sSrc,V.Local.sSrc)
+
+F.Intrinsic.File.IsFileLocked(V.Local.sSrc,V.Local.bSrcLocked)
+
+F.Intrinsic.Control.If(V.Local.bSrcLocked,=,True)
+	F.Intrinsic.UI.Msgbox("Source file is in use.  Please wait and try again later.","Error!")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+Gui.fmMain.lvwDest.RetrieveCheckedListItems(V.Local.sList)
+
+F.Intrinsic.Control.If(V.Local.sList.Trim,=,"***NORETURN***")
+	F.Intrinsic.UI.Msgbox("Please select at least one destination company code.","Error")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Split(V.Local.sList,"*!*",V.Local.sList)
+	F.Intrinsic.Control.For(V.Local.iCNT,V.Local.sList.LBound,V.Local.sList.UBound,1)
+		V.Local.sDest.Set(V.Local.sList(V.Local.iCNT).Trim)
+		F.Intrinsic.String.Build("{0}\DDF\{1}\PPT_EINV_COPT000.MKD",V.Local.sPath,V.Local.sDest,V.Local.sDest)
+		F.Intrinsic.File.IsFileLocked(V.Local.sDest,V.Local.bDestLocked)
+	
+		F.Intrinsic.Control.If(V.Local.bDestLocked,=,True)
+			F.Intrinsic.String.Build("{0}{1}{2}{3}{2} company code was unable to be copied to. The destination file was in use.",V.Local.sFail,V.Ambient.NewLine,V.Ambient.DblQuote,V.Local.sList(V.Local.iCNT).Trim,V.Local.sFail)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.File.CopyFile(V.Local.sSrc,V.Local.sDest)
+		F.Intrinsic.Control.EndIf
+		
+	F.Intrinsic.Control.Next(V.Local.iCNT)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Local.sFail.Trim,=,"")
+	F.Intrinsic.UI.Msgbox("All files copied successfully","Success!")
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox(V.Local.sFail,"Error!")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdCopy_Click.End
+
+Program.Sub.cmdSelAll_Click.Start
+F.Intrinsic.Control.Try
+V.Local.iCNT.Declare
+V.Local.sCOCODE.Declare
+V.Local.sCONAME.Declare
+
+F.Intrinsic.Control.If(V.Screen.fmMain!cmdSelAll.Caption,=,"Select All Codes")
+	F.Intrinsic.Control.For(V.Local.iCNT,0,V.DataView.dtCOCODES!dvCOCODES.RowCount--,1)
+		V.Local.sCOCODE.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COCODE.FieldValTrim)
+		V.Local.sCONAME.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COMPANYNAME.FieldValTrim)
+		Gui.fmMain.lvwDest.ListItemCheck(V.Local.sCOCODE,True)
+		Gui.fmMain.cmdSelAll.Caption("UnCheck All")
+	F.Intrinsic.Control.Next(V.Local.iCNT)
+F.Intrinsic.Control.Else
+	F.Intrinsic.Control.For(V.Local.iCNT,0,V.DataView.dtCOCODES!dvCOCODES.RowCount--,1)
+		V.Local.sCOCODE.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COCODE.FieldValTrim)
+		V.Local.sCONAME.Set(V.DataView.dtCOCODES!dvCOCODES(V.Local.iCNT).COMPANYNAME.FieldValTrim)
+		Gui.fmMain.lvwDest.ListItemCheck(V.Local.sCOCODE,False)
+		Gui.fmMain.cmdSelAll.Caption("Select All Codes")
+	F.Intrinsic.Control.Next(V.Local.iCNT)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSelAll_Click.End
+
+Program.Sub.SetIcon.Start
+F.Intrinsic.Control.Try
+V.Local.sForm.Declare
+V.Local.bExists.Declare
+V.Local.sIcon.Declare
+V.Local.iCounter.Declare
+
+F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,v.Local.sIcon)
+F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+    F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+    F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+    F.Intrinsic.Control.If(V.Local.bExists.Not)
+        F.Intrinsic.Control.ExitSub
+    F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.UI.GetFormList(V.Local.sForm)
+F.Intrinsic.String.Split(V.Local.sForm, "*!*", V.Local.sForm)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sForm.UBound, 1)
+    Gui.[V.Local.sForm(V.Local.iCounter)]..Icon(V.Local.sIcon)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetIcon.End
+
+Program.Sub.fmMain_UnLoad.Start
+F.Intrinsic.Control.End
+Program.Sub.fmMain_UnLoad.End
+
+Program.Sub.Error.Start
+V.Local.sError.Declare
+V.Local.iRet.Declare
+V.Local.sSep.Declare
+
+F.Intrinsic.String.Build("-------------------------------------------------------------------------------------",,V.Local.sSep)
+F.Intrinsic.String.Build("({5}-{6}){0}{7}{0}Project: {4}{0}{7}{0}Sub: {1}{0}Error: {2}, {3}", V.Ambient.NewLine, V.Args.SubRoutine, V.Args.eNumber, V.Args.eDescription,V.Caller.ScriptFile,V.Ambient.Date, V.Ambient.Time,V.Local.sSep,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError,"Error",V.Local.iRet)
+Program.Sub.Error.End
